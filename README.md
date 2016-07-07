@@ -4,7 +4,7 @@ A Leiningen plugin to validate that a database migrated by tern is at the expect
 
 ## Usage
 
-1. Put `[tern-validate "0.1.0-SNAPSHOT"]` into the `:plugins` vector of the project.clj file for the project that uses tern.
+1. Put `[cc.artifice/tern-validate "0.1.0"]` into the `:plugins` vector of the project.clj file for the project that uses tern.
 2. Install your project (`lein install`) or run under the repl (`lein repl`).
 3. Initialize a korma connection to your database.
 4. Call `tern-validate.core/validate`, which will return `true` or `false`.  You may pass an optional callback function, which

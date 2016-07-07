@@ -16,7 +16,7 @@
 
 (defn get-plugin-version
   []
-  (let [res (.getResourceAsStream (.getContextClassLoader (Thread/currentThread)) "META-INF/leiningen/i2kconnect/tern-validate/project.clj")
+  (let [res (.getResourceAsStream (.getContextClassLoader (Thread/currentThread)) "META-INF/leiningen/cc.artifice/tern-validate/project.clj")
         project (read-raw-from-stream res)]
     [(symbol (if (:group project) (:group project) (:name project))
              (:name project))
