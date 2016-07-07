@@ -1,5 +1,5 @@
 (ns tern-validate.core
-  (:use [korma.core :exclude [update]])
+  ;;(:use [korma.core :exclude [update]])
   (:require [clojure.java.io :as io])
   (:import [java.io File])
   (:import [java.util Properties])
@@ -55,10 +55,6 @@
         (get-database-schema-version-in-repl)))))
             
 
-(defn get-database-schema-version-at-runtime
-  []
-  (:version (first (select :schema_versions (fields :version) (order :version :DESC) (limit 1)))))
-
 (defn get-db-project
   []
   (let [res-enum (.getResources (.getContextClassLoader (Thread/currentThread)) "project.clj")]
@@ -101,26 +97,9 @@
                                    :else :ok)}))
     (and new-enough? old-enough?)))
 
-(defn validate
-  "Validate the database version. Calls the optional callback function with a map as its argument. Map entries are:
-   :version -- the version being validated
-   :min-version -- minimum allowed version
-   :max-version -- maximum allowed version
-   :validation -- a keyword: :ok :too-old, :too-new, :mismatch.
-  Returns true or false."
-  [& [callback]]
-  (let [compile-version (get-database-schema-version-at-compile)
-        runtime-version (get-database-schema-version-at-runtime)]
-    (if-let [validation (get-in (get-db-project) [:tern :validation])]
-      (try (valid-version? runtime-version validation callback)
-           (catch Exception _ nil))
-      (let [validation (= compile-version runtime-version)]
-        (when callback
-          (callback {:version runtime-version :min-version compile-version :max-version compile-version
-                     :validation (if validation :ok :mismatch)}))
-        validation))))
-        
+     
 (defn explain-validation
+  "Can be called from a callback function for validate, to generate an English string explaining the validation status."
   [{:keys [version] :as m}]
   (case (:validation m)
     :ok (cond (and (:min-version m) (:max-version m))
@@ -132,5 +111,34 @@
               :else (format "The database version %s is equal to the expected version %s" version version))
     :too-old (format "The database version %s is older than the minimum expected version %s" version (:min-version m))
     :too-new (format "The database version %s is newer than the maximum expected version %s" version (:max-version m))
-    :mismatch (format "The database version %s does not match the expected version %s" version (:min-version m))))
+    :mismatch (format "The database version %s does not match the expected version %s" version (:min-version m))
+    :error (format (format "An exception was thrown: %s" (.getMessage (:exception m))))))
+
+(defn validate
+  "Validate the database version. runtime-version is the current version of the database 
+   (i.e., the max of the version column of the schema_versions table).
+   Calls the optional callback function with a map as its argument. Map entries are:
+   :version -- the version being validated
+   :min-version -- minimum allowed version
+   :max-version -- maximum allowed version
+   :validation -- a keyword: :ok :too-old, :too-new, :mismatch.
+  Returns true or false."
+  [runtime-version & [callback]]
+  {:pre [runtime-version]}
+  (let [compile-version (get-database-schema-version-at-compile)]
+    (if-let [validation (get-in (get-db-project) [:tern :validation])]
+      (try (valid-version? runtime-version validation callback)
+           (catch Exception e
+             (when callback
+               (callback {:version runtime-version
+                          :min-version (:min-version validation)
+                          :max-version (:max-version validation)
+                          :validation :error
+                          :exception e}))
+             nil))
+      (let [validation (= compile-version runtime-version)]
+        (when callback
+          (callback {:version runtime-version :min-version compile-version :max-version compile-version
+                     :validation (if validation :ok :mismatch)}))
+        validation))))
     

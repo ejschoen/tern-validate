@@ -6,8 +6,8 @@ A Leiningen plugin to validate that a database migrated by tern is at the expect
 
 1. Put `[cc.artifice/tern-validate "0.1.0"]` into the `:plugins` vector of the project.clj file for the project that uses tern.
 2. Install your project (`lein install`) or run under the repl (`lein repl`).
-3. Initialize a korma connection to your database.
-4. Call `tern-validate.core/validate`, which will return `true` or `false`.  You may pass an optional callback function, which
+4. Call `tern-validate.core/validate`, which will return `true` or `false`.  You must provide a function of no arguments that returns
+the current database version (i.e., the maximum version number in the `schema_versions` table). You may pass an optional callback function, which
 must accept a single argument, a map, that describes the validation status.
 
 Out of the box, tern-validate will tell you if the running database exactly matches the version number of the latest migration in
@@ -25,7 +25,7 @@ exactly match the version of the latest migration.
 
 ## Limitations
 
-At present, the schema version table must be `schema_versions` and the migrations directory must be `migrations/`, directly under the project directory.  Your project must use and initialize [korma](http://sqlkorma.com/).
+At present, the migrations directory must be `migrations/`, directly under the project directory.  
 
 ## License
 
