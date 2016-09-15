@@ -59,7 +59,7 @@
   []
   (let [res-enum (.getResources (.getContextClassLoader (Thread/currentThread)) "project.clj")]
     (loop []
-      (if (.hasMoreElements res-enum)
+      (when (.hasMoreElements res-enum)
         (let [url (.nextElement res-enum)]
             (let [is (.openStream url)]
               (if is
@@ -68,11 +68,7 @@
                   (if (:tern project)
                     project
                     (recur)))
-                (recur))))
-        (with-open [stream (io/input-stream (io/file "project.clj"))]
-          (let [project (read-raw-from-stream stream)]
-            (when (:tern project)
-              project)))))))
+                (recur))))))))
                     
 (defn valid-version?
   "Validate a version number.  Version is a string.  Second argument is a map with :min-version and :max-version, which can be nil.
