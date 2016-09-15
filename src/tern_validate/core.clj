@@ -35,24 +35,47 @@
         version (when last-file (second (re-matches #"(\d+)-(.*)" last-file)))]
     version))
 
-(defn get-database-schema-version-at-compile
+(defn get-database-schema-version-from-project
+  [project-name]
+  (let [res-enum (.getResources (.getContextClassLoader (Thread/currentThread))
+                                (if (re-matches #".*-project.clj" project-name)
+                                  project-name (format "%s-project.clj" project-name)))]
+    (loop []
+      (when (.hasMoreElements res-enum)
+        (let [url (.nextElement res-enum)]
+          (let [is (.openStream url)]
+            (if is
+              (let [project (read-string (slurp is))
+                    version (get-in project [:manifest "Database-Schema-Version"])]
+                (.close is)
+                (if version
+                  version
+                  (recur)))
+              (recur))))))))
+
+(defn get-database-schema-version-from-manifest
   []
   (let [res-enum (.getResources (.getContextClassLoader (Thread/currentThread)) (JarFile/MANIFEST_NAME))]
     (loop []
-      (if (.hasMoreElements res-enum)
+      (when (.hasMoreElements res-enum)
         (let [url (.nextElement res-enum)]
-            (let [is (.openStream url)]
-              (if is
-                (let [manifest (Manifest. is)
-                      main-attributes (.getMainAttributes manifest)
-                      version (.getValue main-attributes "Database-Schema-Version")]
-                  ;;(println "FOUND MANIFEST")
-                  (.close is)
-                  (if version
-                    version
-                    (do #_(println "NO VERSION") (recur))))
-                (do #_(println "COULDN'T OPEN MANIFEST STREAM") (recur)))))
-        (get-database-schema-version-in-repl)))))
+          (let [is (.openStream url)]
+            (if is
+              (let [manifest (Manifest. is)
+                    main-attributes (.getMainAttributes manifest)
+                    version (.getValue main-attributes "Database-Schema-Version")]
+                (.close is)
+                ;;(println "FOUND MANIFEST")
+                (if version
+                  version
+                  (do #_(println "NO VERSION") (recur))))
+              (do #_(println "COULDN'T OPEN MANIFEST STREAM") (recur)))))))))
+
+(defn get-database-schema-version-at-compile
+  [project-name]
+  (or (get-database-schema-version-from-manifest)
+      (and project-name (get-database-schema-version-from-project project-name))
+      (get-database-schema-version-in-repl)))
             
 
 (defn get-db-project
@@ -110,7 +133,7 @@
     :mismatch (format "The database version %s does not match the expected version %s" version (:min-version m))
     :error (format (format "An exception was thrown: %s" (.getMessage (:exception m))))))
 
-(defn validate
+(defn validate2
   "Validate the database version. runtime-version is the current version of the database 
    (i.e., the max of the version column of the schema_versions table).
    Calls the optional callback function with a map as its argument. Map entries are:
@@ -119,9 +142,9 @@
    :max-version -- maximum allowed version
    :validation -- a keyword: :ok :too-old, :too-new, :mismatch.
   Returns true or false."
-  [runtime-version & [callback]]
+  [runtime-version project-name & [callback]]
   {:pre [runtime-version]}
-  (let [compile-version (get-database-schema-version-at-compile)]
+  (let [compile-version (get-database-schema-version-at-compile project-name)]
     (if-let [validation (get-in (get-db-project) [:tern :validation])]
       (try (valid-version? runtime-version validation callback)
            (catch Exception e
@@ -137,4 +160,7 @@
           (callback {:version runtime-version :min-version compile-version :max-version compile-version
                      :validation (if validation :ok :mismatch)}))
         validation))))
-    
+
+(defn validate
+  [runtime-version & [callback]]
+  (validate2 runtime-version nil callback))
