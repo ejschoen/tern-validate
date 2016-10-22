@@ -17,7 +17,7 @@
     (into {} (map (fn [k v] [k v]) keys vals))))
     
 
-(defn- read-raw-from-stream
+(defn read-raw-from-stream
   "Read project file without loading certificates, plugins, middleware, etc."
   [stream]
   (let [tempfile (File/createTempFile "tern-validate-" ".clj")]
