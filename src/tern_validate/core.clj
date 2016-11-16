@@ -20,6 +20,7 @@
 (defn read-raw-from-stream
   "Read project file without loading certificates, plugins, middleware, etc."
   [stream]
+  (File/mkdirs (System/getProperty "java.io.tmpdir"))
   (let [tempfile (File/createTempFile "tern-validate-" ".clj")]
     (try (do (io/copy stream tempfile)
              (read-raw (.getAbsolutePath tempfile)))
