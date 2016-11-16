@@ -1,4 +1,4 @@
-(defproject cc.artifice/tern-validate "0.1.1"
+(defproject cc.artifice/tern-validate "0.1.2"
   :description "Insert tern database schema version into the project manifest."
   :url "http://bitbucket.org/i2kconnect/tern-validate"
   :license {:name "Eclipse Public License"
