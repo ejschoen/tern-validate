@@ -22,6 +22,7 @@
 (defn read-raw-from-stream
   "Read project file without loading certificates, plugins, middleware, etc."
   [stream]
+  (.mkdirs (io/as-file (System/getProperty "java.io.tmpdir")))
   (let [tempfile (File/createTempFile "tern-validate-" ".clj")]
     (try (do (io/copy stream tempfile)
              (read-raw (.getAbsolutePath tempfile)))
@@ -144,9 +145,10 @@
    :max-version -- maximum allowed version
    :validation -- a keyword: :ok :too-old, :too-new, :mismatch.
   Returns true or false."
-  [runtime-version project-name & [callback]]
+  [{:keys [runtime-version schema-project-name project callback]
+    :or {project (get-db-project)}}]
   {:pre [runtime-version]}
-  (let [compile-version (get-database-schema-version-at-compile project-name)]
+  (let [compile-version (get-database-schema-version-at-compile schema-project-name)]
     (if-let [validation (get-in (get-db-project) [:tern :validation])]
       (try (valid-version? runtime-version validation callback)
            (catch Exception e
@@ -165,4 +167,4 @@
 
 (defn validate
   [runtime-version & [callback]]
-  (validate2 runtime-version nil callback))
+  (validate2 {:runtime-version runtime-version :callback callback}))

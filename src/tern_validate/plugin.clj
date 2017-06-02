@@ -27,13 +27,20 @@
   [project]
   (let [version (tv/get-database-schema-version-in-repl)
         dependency (get-plugin-version)]
-    (let [new-project (if version
-                        (do ;;(leiningen.core.main/info (format "Setting schema version to %s" version))
-                            (-> project
-                                (assoc-in [:manifest "Database-Schema-Version"] version) ))
-                        (do ;;(leiningen.core.main/warn (format "Unable to determine database schema version."))
-                            project))]
-      (if (some #(= dependency %) (get-in new-project [:dependencies]))
-        new-project
-        (leiningen.core.project/merge-profiles new-project [{:dependencies [dependency]}])))))
+    ;;(leiningen.core.main/info (format "Tern validate is %s" (pr-str dependency)))
+    (if (and (not-empty version) (not-empty (get-in project [:manifest "Database-Schema-Version"])))
+      project
+      (let [new-project (if version
+                          (do ;;(leiningen.core.main/info (format "Setting schema version to %s" version))
+                              (-> project
+                                  (assoc-in [:manifest "Database-Schema-Version"] version) ))
+                          (do ;;(leiningen.core.main/warn (format "Unable to determine database schema version."))
+                              project))]
+        (if (some #(= dependency %) (get-in new-project [:dependencies]))
+          new-project
+          (update-in new-project [:dependencies]
+                     (fn [old]
+                       (concat old [dependency])))
+          ;; Can't do this (causes infinite recursion).  See https://github.com/technomancy/leiningen/issues/1151
+          #_(leiningen.core.project/merge-profiles new-project [{:dependencies [dependency]}]))))))
 
