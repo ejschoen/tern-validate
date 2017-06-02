@@ -139,11 +139,17 @@
 (defn validate2
   "Validate the database version. runtime-version is the current version of the database 
    (i.e., the max of the version column of the schema_versions table).
-   Calls the optional callback function with a map as its argument. Map entries are:
-   :version -- the version being validated
-   :min-version -- minimum allowed version
-   :max-version -- maximum allowed version
-   :validation -- a keyword: :ok :too-old, :too-new, :mismatch.
+   Call with a map:
+     :runtime-version -- The runtime version of the database.
+     :schema-project-version -- (optional) The name of the project that defines the schema
+     :project -- (optional) A leiningen project data structure with a :tern entry containing a :validation map.
+       The validation map has :min-version and/or :max-version keys, each of which is a string, in 
+       the form YYYYMMDDHHMMSS, the time at which a migration was created by lein tern new-migration.
+     :callback -- (optional)Callback function with a map as its argument. Map entries are:
+        :version -- the version being validated
+        :min-version -- minimum allowed version
+        :max-version -- maximum allowed version
+        :validation -- a keyword: :ok :too-old, :too-new, :mismatch.
   Returns true or false."
   [{:keys [runtime-version schema-project-name project callback]
     :or {project (get-db-project)}}]
