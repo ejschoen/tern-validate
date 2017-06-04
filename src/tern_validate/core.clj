@@ -174,3 +174,21 @@
 (defn validate
   [runtime-version & [callback]]
   (validate2 {:runtime-version runtime-version :callback callback}))
+
+(defn get-project
+  [project-name]
+  (let [res-enum (.getResources (.getContextClassLoader (Thread/currentThread)) (str project-name "-project.clj"))]
+    (loop []
+      (if (.hasMoreElements res-enum)
+        (let [url (.nextElement res-enum)]
+          (let [is (.openStream url)]
+            (if is
+              (let [project (read-raw-from-stream is)]
+                (.close is)
+                (if (:tern project)
+                  project
+                  (recur)))
+              (recur))))
+        (with-open [stream (io/input-stream "project.clj")]
+          (read-raw-from-stream stream)
+          )))))
