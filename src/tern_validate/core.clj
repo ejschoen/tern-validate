@@ -11,9 +11,9 @@
   (let [p (read-string (slurp file))]
     (if (map? p)
       p
-      (let [project-name (second p)
-            artifact (name project-name)
-            group (or (namespace project-name) artifact)
+      (let [;;project-name (second p)
+            ;;artifact (name project-name)
+            ;;group (or (namespace project-name) artifact)
             keys (take-nth 2 (drop 3 p))
             vals (take-nth 2 (drop 4 p))]
         (into {} (map (fn [k v] [k v]) keys vals))))))
