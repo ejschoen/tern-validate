@@ -30,12 +30,28 @@
 
 
 (defn get-database-schema-version-in-repl
-  []
+  [& [project]]
   (let [files (try (sort (map #(.getName %)
-                              (filter #(.endsWith (.getName %) ".edn") (file-seq (io/file "migrations/")))))
+                              (filter #(.endsWith (.getName %) ".edn")
+                                      (file-seq
+                                       (if (and project (get-in project [:tern :migration-dir]))
+                                         (let [migration-dir (get-in project [:tern :migration-dir])]
+                                           (if (.startsWith migration-dir "/")
+                                             ;; Absolute path --> Assume it's actually a path under resources
+                                             (let [resource-paths (:resource-paths project ["resources"])
+                                                   migration-path (some (fn [rp]
+                                                                          (let [migration-path (str rp migration-dir)]
+                                                                            (and (.exists (io/file migration-path))
+                                                                                 migration-path)))
+                                                                        resource-paths)]
+                                               (if migration-path
+                                                 (io/file migration-path)
+                                                 (io/file "migrations/")))
+                                             (io/file migration-dir)))
+                                         (io/file "migrations/"))))))
                    (catch Exception e (println (format "Failed to get migration files: %s" (.getMessage e))) nil))
         last-file (last files)
-        version (when last-file (second (re-matches #"(\d+)-(.*)" last-file)))]
+        version (when last-file (second (re-matches #"(\d+)-(.*)" last-file)))] 
     version))
 
 (defn get-database-schema-version-from-project

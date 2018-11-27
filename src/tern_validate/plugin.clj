@@ -25,16 +25,19 @@
 
 (defn middleware
   [project]
-  (let [version (tv/get-database-schema-version-in-repl)
+  (let [version (tv/get-database-schema-version-in-repl project)
         dependency (get-plugin-version)]
     ;;(leiningen.core.main/info (format "Tern validate is %s" (pr-str dependency)))
     (if (and (not-empty version) (not-empty (get-in project [:manifest "Database-Schema-Version"])))
       project
       (let [new-project (if version
-                          (do ;;(leiningen.core.main/info (format "Setting schema version to %s" version))
+                          ;; The info is commented out here, because it gets executed too many times.
+                          (do #_(leiningen.core.main/info
+                               (format "Libraries that link against %s %s will expect database schema version %s"
+                                       (:name project) (:version project) version))
                               (-> project
                                   (assoc-in [:manifest "Database-Schema-Version"] version) ))
-                          (do ;;(leiningen.core.main/warn (format "Unable to determine database schema version."))
+                          (do (leiningen.core.main/warn (format "Unable to determine database schema version."))
                               project))]
         (if (some #(= dependency %) (get-in new-project [:dependencies]))
           new-project
